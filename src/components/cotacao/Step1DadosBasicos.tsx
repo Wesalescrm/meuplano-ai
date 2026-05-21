@@ -57,6 +57,9 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
 
   const total = beneficiarios.length;
 
+  // Tipo de plano só aparece depois que o usuário começar a digitar o CEP
+  const mostrarTipoPlano = cep.replace(/\D/g, "").length > 0;
+
   const setTotal = (novoTotal: number) => {
     if (novoTotal < 1 || novoTotal > 8) return;
     if (novoTotal > total) {
@@ -141,7 +144,7 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
         </p>
       </div>
 
-      {/* SEÇÃO: Pessoas */}
+      {/* SEÇÃO: Quantas pessoas */}
       <section className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Users className="w-4 h-4 text-brand-blue" />
@@ -230,33 +233,35 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
         )}
       </section>
 
-      {/* SEÇÃO: Tipo de plano */}
-      <section className="space-y-3">
-        <p className="text-sm font-semibold text-gray-700">Tipo de plano</p>
-        <div className="grid grid-cols-2 gap-3">
-          {planos.map((p) => (
-            <button
-              key={p.valor}
-              onClick={() => setTipo(p.valor)}
-              className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                tipo === p.valor
-                  ? "border-brand-blue bg-brand-blue-light shadow-sm"
-                  : "border-gray-100 bg-white hover:border-brand-blue/30"
-              }`}
-            >
-              <span className="text-2xl mb-2 block">{p.emoji}</span>
-              <p
-                className={`font-bold text-sm ${
-                  tipo === p.valor ? "text-brand-blue" : "text-gray-800"
+      {/* SEÇÃO: Tipo de plano — aparece ao começar a digitar o CEP */}
+      {mostrarTipoPlano && (
+        <section className="space-y-3 animate-fade-in">
+          <p className="text-sm font-semibold text-gray-700">Tipo de plano</p>
+          <div className="grid grid-cols-2 gap-3">
+            {planos.map((p) => (
+              <button
+                key={p.valor}
+                onClick={() => setTipo(p.valor)}
+                className={`p-4 rounded-2xl border-2 text-left transition-all ${
+                  tipo === p.valor
+                    ? "border-brand-blue bg-brand-blue-light shadow-sm"
+                    : "border-gray-100 bg-white hover:border-brand-blue/30"
                 }`}
               >
-                {p.label}
-              </p>
-              <p className="text-xs text-gray-500 mt-0.5 leading-snug">{p.desc}</p>
-            </button>
-          ))}
-        </div>
-      </section>
+                <span className="text-2xl mb-2 block">{p.emoji}</span>
+                <p
+                  className={`font-bold text-sm ${
+                    tipo === p.valor ? "text-brand-blue" : "text-gray-800"
+                  }`}
+                >
+                  {p.label}
+                </p>
+                <p className="text-xs text-gray-500 mt-0.5 leading-snug">{p.desc}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       <Button
         onClick={handleProximo}
