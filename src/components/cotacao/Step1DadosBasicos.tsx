@@ -191,12 +191,12 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
                 <p className="text-xs text-gray-400 mb-1">{labelBeneficiario(idx)}</p>
                 <div className="flex items-baseline gap-1.5">
                   <input
-                    type="number"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
                     placeholder="—"
                     value={b.idade || ""}
                     onChange={(e) => atualizarIdade(idx, e.target.value)}
-                    min={0}
-                    max={120}
                     className="w-14 text-center font-bold text-lg text-gray-900 border-0 border-b-2 border-gray-200 focus:border-brand-blue outline-none bg-transparent pb-0.5 transition-colors"
                   />
                   <span className="text-sm text-gray-400">anos</span>
