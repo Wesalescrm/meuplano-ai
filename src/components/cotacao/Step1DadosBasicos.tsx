@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, ArrowRight, Users, MapPin } from "lucide-react";
+import { ArrowRight, MapPin, User, Users } from "lucide-react";
 import type { DadosCotacao, Beneficiario, EnderecoViaCEP, TipoPlano } from "@/types";
 
 interface Step1Props {
@@ -12,15 +12,40 @@ interface Step1Props {
   onProximo: () => void;
 }
 
-const TIPOS_PLANO: { valor: TipoPlano; label: string; desc: string }[] = [
-  { valor: "individual", label: "Individual", desc: "Só para você" },
-  { valor: "familiar", label: "Familiar", desc: "Para a família" },
-  { valor: "empresarial", label: "Empresarial / MEI", desc: "Para empresa" },
+type TipoDisplay = "individual" | "familiar" | "empresarial" | "mei";
+
+interface PlanCard {
+  valor: TipoDisplay;
+  label: string;
+  desc: string;
+  emoji: string;
+}
+
+const PLANOS_1_PESSOA: PlanCard[] = [
+  { valor: "individual", label: "Individual", desc: "Cobertura só para você", emoji: "👤" },
+  { valor: "mei", label: "MEI", desc: "Microempreendedor Individual", emoji: "🏪" },
 ];
+
+const PLANOS_MULTI: PlanCard[] = [
+  { valor: "familiar", label: "Familiar", desc: "Você + dependentes", emoji: "👨‍👩‍👧" },
+  { valor: "empresarial", label: "Empresa", desc: "Pessoa jurídica (LTDA, SA…)", emoji: "🏢" },
+];
+
+function labelBeneficiario(idx: number) {
+  if (idx === 0) return "Titular (você)";
+  return `Dependente ${idx}`;
+}
+
+function tipoParaSalvar(tipo: TipoDisplay): TipoPlano {
+  if (tipo === "mei") return "individual";
+  return tipo as TipoPlano;
+}
 
 export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props) {
   const [beneficiarios, setBeneficiarios] = useState<Beneficiario[]>(
-    dados.beneficiarios ?? [{ idade: 0 }]
+    dados.beneficiarios && dados.beneficiarios.length > 0
+      ? dados.beneficiarios
+      : [{ idade: 0 }]
   );
   const [cep, setCep] = useState(dados.cep ?? "");
   const [cepLoading, setCepLoading] = useState(false);
@@ -28,15 +53,27 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
   const [endereco, setEndereco] = useState<EnderecoViaCEP | null>(
     dados.endereco ?? null
   );
-  const [tipo, setTipo] = useState<TipoPlano>(dados.tipo_plano ?? "individual");
+  const [tipo, setTipo] = useState<TipoDisplay>(dados.tipo_plano ?? "individual");
 
-  const adicionarBeneficiario = () => {
-    setBeneficiarios((prev) => [...prev, { idade: 0 }]);
-  };
+  const total = beneficiarios.length;
 
-  const removerBeneficiario = (idx: number) => {
-    if (beneficiarios.length === 1) return;
-    setBeneficiarios((prev) => prev.filter((_, i) => i !== idx));
+  const setTotal = (novoTotal: number) => {
+    if (novoTotal < 1 || novoTotal > 8) return;
+    if (novoTotal > total) {
+      const extras: Beneficiario[] = Array.from(
+        { length: novoTotal - total },
+        () => ({ idade: 0 })
+      );
+      setBeneficiarios((prev) => [...prev, ...extras]);
+    } else {
+      setBeneficiarios((prev) => prev.slice(0, novoTotal));
+    }
+    if (novoTotal === 1 && (tipo === "familiar" || tipo === "empresarial")) {
+      setTipo("individual");
+    }
+    if (novoTotal > 1 && (tipo === "individual" || tipo === "mei")) {
+      setTipo("familiar");
+    }
   };
 
   const atualizarIdade = (idx: number, valor: string) => {
@@ -47,9 +84,7 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
     );
   };
 
-  const buscarCEP = async (valor: string) => {
-    const digits = valor.replace(/\D/g, "");
-    if (digits.length !== 8) return;
+  const buscarCEP = async (digits: string) => {
     setCepLoading(true);
     setCepErro("");
     try {
@@ -71,9 +106,7 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
   const handleCepChange = (valor: string) => {
     const digits = valor.replace(/\D/g, "").slice(0, 8);
     const formatted =
-      digits.length > 5
-        ? `${digits.slice(0, 5)}-${digits.slice(5)}`
-        : digits;
+      digits.length > 5 ? `${digits.slice(0, 5)}-${digits.slice(5)}` : digits;
     setCep(formatted);
     if (digits.length === 8) buscarCEP(digits);
   };
@@ -90,67 +123,89 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
       beneficiarios,
       cep: cep.replace(/\D/g, ""),
       endereco: endereco ?? undefined,
-      tipo_plano: tipo,
+      tipo_plano: tipoParaSalvar(tipo),
     });
     onProximo();
   };
 
+  const planos = total === 1 ? PLANOS_1_PESSOA : PLANOS_MULTI;
+
   return (
-    <div className="step-transition max-w-xl mx-auto px-4 py-8 space-y-8">
+    <div className="step-transition max-w-xl mx-auto px-4 py-8 space-y-7">
       <div>
-        <h1 className="text-2xl font-extrabold text-gray-900 mb-2">
+        <h1 className="text-2xl font-extrabold text-gray-900 mb-1.5">
           Vamos começar com o básico
         </h1>
-        <p className="text-gray-500">
-          Informe as idades dos beneficiários e sua localização.
+        <p className="text-gray-500 text-sm">
+          Diga quantas pessoas vão no plano e onde você mora.
         </p>
       </div>
 
-      {/* Beneficiários */}
-      <div className="space-y-3">
+      {/* SEÇÃO: Pessoas */}
+      <section className="space-y-4">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <Users className="w-4 h-4 text-brand-blue" />
-          Quem vai ser incluído no plano?
+          Quantas pessoas vão no plano?
         </div>
+
+        {/* Contador */}
+        <div className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-2xl px-5 py-4">
+          <span className="text-sm text-gray-600 font-medium">
+            {total === 1 ? "1 pessoa" : `${total} pessoas`}
+          </span>
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setTotal(total - 1)}
+              disabled={total <= 1}
+              className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center text-xl font-bold text-gray-500 hover:border-brand-blue hover:text-brand-blue disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              −
+            </button>
+            <span className="w-5 text-center font-extrabold text-xl text-gray-900">
+              {total}
+            </span>
+            <button
+              onClick={() => setTotal(total + 1)}
+              disabled={total >= 8}
+              className="w-9 h-9 rounded-full bg-brand-blue flex items-center justify-center text-xl font-bold text-white hover:opacity-80 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Idade de cada pessoa */}
         <div className="space-y-2">
           {beneficiarios.map((b, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <div className="flex-1">
-                <Input
-                  type="number"
-                  placeholder={`Idade da pessoa ${idx + 1}`}
-                  value={b.idade || ""}
-                  onChange={(e) => atualizarIdade(idx, e.target.value)}
-                  min={0}
-                  max={120}
-                />
+            <div
+              key={idx}
+              className="flex items-center gap-4 bg-white rounded-xl border border-gray-100 px-4 py-3"
+            >
+              <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center flex-shrink-0">
+                <User className="w-4 h-4 text-brand-blue" />
               </div>
-              {beneficiarios.length > 1 && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => removerBeneficiario(idx)}
-                  className="text-red-400 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              )}
+              <div className="flex-1">
+                <p className="text-xs text-gray-400 mb-1">{labelBeneficiario(idx)}</p>
+                <div className="flex items-baseline gap-1.5">
+                  <input
+                    type="number"
+                    placeholder="—"
+                    value={b.idade || ""}
+                    onChange={(e) => atualizarIdade(idx, e.target.value)}
+                    min={0}
+                    max={120}
+                    className="w-14 text-center font-bold text-lg text-gray-900 border-0 border-b-2 border-gray-200 focus:border-brand-blue outline-none bg-transparent pb-0.5 transition-colors"
+                  />
+                  <span className="text-sm text-gray-400">anos</span>
+                </div>
+              </div>
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={adicionarBeneficiario}
-          className="w-full border-dashed"
-        >
-          <Plus className="w-4 h-4" />
-          Adicionar pessoa
-        </Button>
-      </div>
+      </section>
 
-      {/* CEP */}
-      <div className="space-y-3">
+      {/* SEÇÃO: CEP */}
+      <section className="space-y-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-gray-700">
           <MapPin className="w-4 h-4 text-brand-blue" />
           Qual é o seu CEP?
@@ -162,7 +217,7 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
           onChange={(e) => handleCepChange(e.target.value)}
           maxLength={9}
           error={cepErro}
-          hint={cepLoading ? "Buscando endereço..." : undefined}
+          hint={cepLoading ? "Buscando endereço…" : undefined}
         />
         {endereco && !endereco.erro && (
           <div className="flex items-center gap-2 px-4 py-3 bg-brand-green-light rounded-xl text-sm text-brand-green-dark">
@@ -173,36 +228,36 @@ export function Step1DadosBasicos({ dados, onAtualizar, onProximo }: Step1Props)
             </span>
           </div>
         )}
-      </div>
+      </section>
 
-      {/* Tipo de plano */}
-      <div className="space-y-3">
+      {/* SEÇÃO: Tipo de plano */}
+      <section className="space-y-3">
         <p className="text-sm font-semibold text-gray-700">Tipo de plano</p>
-        <div className="grid grid-cols-3 gap-3">
-          {TIPOS_PLANO.map((t) => (
+        <div className="grid grid-cols-2 gap-3">
+          {planos.map((p) => (
             <button
-              key={t.valor}
-              onClick={() => setTipo(t.valor)}
+              key={p.valor}
+              onClick={() => setTipo(p.valor)}
               className={`p-4 rounded-2xl border-2 text-left transition-all ${
-                tipo === t.valor
-                  ? "border-brand-blue bg-brand-blue-light"
-                  : "border-gray-100 hover:border-brand-blue/30"
+                tipo === p.valor
+                  ? "border-brand-blue bg-brand-blue-light shadow-sm"
+                  : "border-gray-100 bg-white hover:border-brand-blue/30"
               }`}
             >
+              <span className="text-2xl mb-2 block">{p.emoji}</span>
               <p
                 className={`font-bold text-sm ${
-                  tipo === t.valor ? "text-brand-blue" : "text-gray-800"
+                  tipo === p.valor ? "text-brand-blue" : "text-gray-800"
                 }`}
               >
-                {t.label}
+                {p.label}
               </p>
-              <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+              <p className="text-xs text-gray-500 mt-0.5 leading-snug">{p.desc}</p>
             </button>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Botão */}
       <Button
         onClick={handleProximo}
         disabled={!podeProximar()}
