@@ -78,6 +78,7 @@ export interface CarenciasPlano {
   internacao: number;
   parto: number;
   urgencia: number;
+  [key: string]: number;
 }
 
 export interface PrecoPorFaixa {
