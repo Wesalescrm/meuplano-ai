@@ -31,46 +31,51 @@ function CardEstabelecimento({
   return (
     <button
       onClick={onToggle}
-      className={`w-full flex items-center gap-4 p-4 rounded-2xl border-2 text-left transition-all ${
+      className={`w-full flex flex-col rounded-2xl border-2 text-left transition-all overflow-hidden ${
         selecionado
-          ? "border-brand-blue bg-brand-blue-light"
-          : "border-gray-100 bg-white hover:border-brand-blue/30"
+          ? "border-brand-blue shadow-md"
+          : "border-gray-100 bg-white hover:border-brand-blue/40 hover:shadow-sm"
       }`}
     >
-      {place.photo_url ? (
-        <img
-          src={place.photo_url}
-          alt={place.name}
-          className="w-11 h-11 rounded-xl object-cover flex-shrink-0"
-        />
-      ) : (
-        <div className="w-11 h-11 rounded-xl bg-gray-100 flex items-center justify-center flex-shrink-0">
-          {isHospital(place) ? (
-            <Building2 className="w-5 h-5 text-gray-400" />
-          ) : (
-            <Stethoscope className="w-5 h-5 text-gray-400" />
-          )}
-        </div>
-      )}
-      <div className="flex-1 min-w-0">
-        <p className={`font-semibold text-sm truncate ${selecionado ? "text-brand-blue" : "text-gray-900"}`}>
+      {/* Foto */}
+      <div className="w-full h-24 bg-gray-100 relative flex-shrink-0">
+        {place.photo_url ? (
+          <img
+            src={place.photo_url}
+            alt={place.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            {isHospital(place) ? (
+              <Building2 className="w-8 h-8 text-gray-300" />
+            ) : (
+              <Stethoscope className="w-8 h-8 text-gray-300" />
+            )}
+          </div>
+        )}
+        {selecionado && (
+          <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-brand-blue flex items-center justify-center shadow">
+            <CheckCircle2 className="w-4 h-4 text-white" />
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className={`p-3 flex-1 ${selecionado ? "bg-brand-blue-light" : "bg-white"}`}>
+        <p className={`font-semibold text-xs leading-snug line-clamp-2 ${selecionado ? "text-brand-blue" : "text-gray-900"}`}>
           {place.name}
         </p>
-        <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
-          <MapPin className="w-3 h-3 flex-shrink-0" />
+        <div className="flex items-center gap-1 text-xs text-gray-400 mt-1">
+          <MapPin className="w-2.5 h-2.5 flex-shrink-0" />
           <span className="truncate">{place.vicinity}</span>
         </div>
         {place.distance_km !== undefined && (
-          <span className="text-xs text-brand-blue font-medium">
+          <span className="text-xs text-brand-blue font-medium mt-0.5 block">
             {place.distance_km.toFixed(1)} km
           </span>
         )}
       </div>
-      <CheckCircle2
-        className={`w-5 h-5 flex-shrink-0 transition-colors ${
-          selecionado ? "text-brand-blue" : "text-gray-200"
-        }`}
-      />
     </button>
   );
 }
@@ -165,7 +170,7 @@ export function Step2Hospitais({ dados, onAtualizar, onProximo, onVoltar }: Step
                   Hospitais
                 </h2>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
                 {hospitais.map((h) => (
                   <CardEstabelecimento
                     key={h.place_id}
@@ -187,7 +192,7 @@ export function Step2Hospitais({ dados, onAtualizar, onProximo, onVoltar }: Step
                   Clínicas e Laboratórios
                 </h2>
               </div>
-              <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-3">
                 {clinicas.map((c) => (
                   <CardEstabelecimento
                     key={c.place_id}
