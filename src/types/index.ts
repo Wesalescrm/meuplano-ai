@@ -176,8 +176,11 @@ export interface DadosCotacao {
   endereco?: EnderecoViaCEP;
   tipo_plano?: TipoPlano;
 
-  // Etapa 2
+  // Etapa 2 — hospitais
   hospitais_preferidos?: HospitalPreferido[];
+
+  // Etapa 3 — clínicas e laboratórios
+  clinicas_preferidas?: HospitalPreferido[];
 
   // Etapa 3
   frequencia_uso?: "raramente" | "as_vezes" | "frequentemente";

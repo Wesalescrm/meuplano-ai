@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 const STEPS = [
   "Dados básicos",
   "Hospitais preferidos",
+  "Clínicas e laboratórios",
   "Perfil de uso",
   "Planos recomendados",
   "Resumo e pagamento",

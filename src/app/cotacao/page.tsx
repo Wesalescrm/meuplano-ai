@@ -82,7 +82,7 @@ export default function CotacaoPage() {
 
   const handleEscolherPlano = (plano: PlanoRecomendado) => {
     setPlanoEscolhido(plano);
-    irPara(5);
+    irPara(6);
   };
 
   const handleConcluir = () => {
@@ -123,39 +123,49 @@ export default function CotacaoPage() {
             onAtualizar={atualizarDados}
             onProximo={() => irPara(3)}
             onVoltar={() => irPara(1)}
+            modo="hospitais"
           />
         )}
         {etapa === 3 && (
-          <Step3PerfilUso
+          <Step2Hospitais
             dados={dados}
             onAtualizar={atualizarDados}
             onProximo={() => irPara(4)}
             onVoltar={() => irPara(2)}
+            modo="clinicas"
           />
         )}
         {etapa === 4 && (
+          <Step3PerfilUso
+            dados={dados}
+            onAtualizar={atualizarDados}
+            onProximo={() => irPara(5)}
+            onVoltar={() => irPara(3)}
+          />
+        )}
+        {etapa === 5 && (
           <Step4Resultado
             dados={dados}
             onAtualizar={atualizarDados}
             onEscolherPlano={handleEscolherPlano}
-            onVoltar={() => irPara(3)}
+            onVoltar={() => irPara(4)}
             sessionId={sessionId}
           />
         )}
-        {etapa === 5 && planoEscolhido && (
+        {etapa === 6 && planoEscolhido && (
           <Step5Pagamento
             dados={dados}
             planoEscolhido={planoEscolhido}
-            onProximo={() => irPara(6)}
-            onVoltar={() => irPara(4)}
+            onProximo={() => irPara(7)}
+            onVoltar={() => irPara(5)}
           />
         )}
-        {etapa === 6 && planoEscolhido && (
+        {etapa === 7 && planoEscolhido && (
           <Step6Documentos
             dados={dados}
             planoEscolhido={planoEscolhido}
             cotacaoId={cotacaoId}
-            onVoltar={() => irPara(5)}
+            onVoltar={() => irPara(6)}
             onConcluir={handleConcluir}
           />
         )}
