@@ -23,21 +23,39 @@ function calcularDistanciaKm(lat1: number, lng1: number, lat2: number, lng2: num
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Geocodifica CEP usando Nominatim (gratuito, sem API key)
-async function geocodificarCEP(cep: string): Promise<{ lat: number; lng: number } | null> {
+// Obtém cidade, bairro e coordenadas do CEP
+// Estratégia: ViaCEP (cidade+bairro) → Nominatim geocoding por bairro/cidade
+async function dadosDoCEP(cep: string): Promise<{ cidade: string; uf: string; lat: number; lng: number } | null> {
   try {
-    const url = `https://nominatim.openstreetmap.org/search?postalcode=${cep}&country=Brasil&format=json&limit=1`;
-    const res = await fetch(url, {
+    // 1. ViaCEP para cidade + bairro
+    const viaRes = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+    const viaData = await viaRes.json();
+    if (viaData.erro) return null;
+
+    const cidade: string = viaData.localidade;
+    const uf: string = viaData.uf;
+    const bairro: string = viaData.bairro ?? "";
+
+    // 2. Nominatim geocoding usando bairro+cidade+uf (muito mais preciso que CEP direto)
+    const query = bairro
+      ? `${bairro}, ${cidade}, ${uf}, Brasil`
+      : `${cidade}, ${uf}, Brasil`;
+    const nominatimUrl = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`;
+    const nomRes = await fetch(nominatimUrl, {
       headers: { "User-Agent": "meuplano-ai/1.0 (contato@meuplano.ai)" },
     });
-    const data = await res.json();
-    if (data?.[0]?.lat && data?.[0]?.lon) {
-      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
-    }
+    const nomData = await nomRes.json();
+    if (!nomData?.[0]?.lat) return null;
+
+    return {
+      cidade,
+      uf,
+      lat: parseFloat(nomData[0].lat),
+      lng: parseFloat(nomData[0].lon),
+    };
   } catch {
-    // fallback: sem coordenadas
+    return null;
   }
-  return null;
 }
 
 type MockItem = {
@@ -226,22 +244,11 @@ export async function GET(request: NextRequest) {
   }
 
   if (!apiKey) {
-    // Obtém cidade via ViaCEP
-    let cidade = "São Paulo";
-    let uf = "SP";
-    try {
-      const viaRes = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const viaData = await viaRes.json();
-      if (!viaData.erro) {
-        cidade = viaData.localidade ?? cidade;
-        uf = viaData.uf ?? uf;
-      }
-    } catch {
-      // fallback SP
-    }
+    const cepData = await dadosDoCEP(cep);
 
-    // Geocodifica o CEP para obter a localização real do usuário
-    const coordsUsuario = await geocodificarCEP(cep);
+    const cidade = cepData?.cidade ?? "São Paulo";
+    const uf = cepData?.uf ?? "SP";
+    const coordsUsuario = cepData ? { lat: cepData.lat, lng: cepData.lng } : null;
 
     const listaBase = MOCK_POR_CIDADE[cidade];
     const lista = listaBase
